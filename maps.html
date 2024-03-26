@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPS Tracking - Map</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <style>
+        .container-fluid {
+            margin-top: 20px;
+        }
+    </style>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        #map {
+            height: 880px;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="home.html">GPS Tracking</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ml-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="home.html">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="maps.html">Maps</a>
+                    </li>
+                    <li>
+                        <a class="nav-link" href="data.html">Data</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div id="map"></div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        // Paste your map script here
+        var map = L.map('map').setView([0, 0], 15);
+        var userAction = false; // Flag to check if user has manually moved the map
+
+        map.on('move', function () {
+            userAction = true;
+        });
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Function to fetch data from the API
+        function fetchData() {
+            // Replace 'YOUR_API_ENDPOINT' with the actual API endpoint
+            var apiUrl = 'https://api.thingspeak.com/channels/2453621/feeds.json?timezone=Asia%2FJakarta&api_key=QTZEWSPVLEUIPXWJ';
+
+            // Fetch data from the API
+            fetch(apiUrl)
+                .then(response => response.json())
+                .then(data => {
+                    // Update the map and table with the new data
+                    console.log('Response JSON:', data);
+                    updateMarkers(data.feeds);
+                    updateTable(data.feeds);
+                })
+                .catch(error => console.error('Error fetching data:', error));
+        }
+
+        // Function to update markers on the map
+        function updateMarkers(locations) {
+            // Remove existing markers
+            map.eachLayer(function (layer) {
+                if (layer instanceof L.Marker) {
+                    map.removeLayer(layer);
+                }
+            });
+
+            // Add new markers based on the API response
+            locations.forEach(location => {
+                var lat = parseFloat(location.field5);
+                var lng = parseFloat(location.field6);
+
+                // Check if lat and lng are not empty
+                if (!isNaN(lat) && !isNaN(lng)) {
+                    var latLng = [lat, lng];
+
+                    var marker = L.marker(latLng)
+                        .addTo(map)
+                        .bindPopup(
+                            'Date: ' + location.created_at.slice(0, 10) + '<br>' +
+                            'Time: ' + location.created_at.slice(11) + '<br>' +
+                            'Dust density: ' + location.field1 + '<br>' +
+                            'Humidity: ' + location.field2 + '<br>' +
+                            'Temperature: ' + location.field3 + '<br>' +
+                            'CO: ' + location.field4 + '<br>' +
+                            'Latitude: ' + location.field5 + '<br>' +
+                            'Longitude: ' + location.field6 + '<br>'
+                        );
+
+                    // Set view only if the map hasn't been manually moved by the user
+                    if (!userAction) {
+                        map.setView(latLng, map.getZoom());
+                    }
+                }
+            });
+        }
+
+        // Function to update table with new data
+        function updateTable(locations) {
+            // Clear existing table data
+            document.getElementById("dataTableBody").innerHTML = "";
+
+            // Populate table with new data
+            locations.forEach(location => {
+                var newRow = "<tr>" +
+                    "<td>" + location.created_at.slice(0, 10) + "</td>" +
+                    "<td>" + location.created_at.slice(11) + "</td>" +
+                    "<td>" + location.field1 + "</td>" +
+                    "<td>" + location.field2 + "</td>" +
+                    "<td>" + location.field3 + "</td>" +
+                    "<td>" + location.field4 + "</td>" +
+                    "<td>" + location.field5 + "</td>" +
+                    "<td>" + location.field6 + "</td>" +
+                    "</tr>";
+                document.getElementById("dataTableBody").innerHTML += newRow;
+            });
+        }
+
+        // Initial fetch when the page loads
+        fetchData();
+
+        // Fetch data every 10 seconds (adjust the interval as needed)
+        setInterval(fetchData, 10000);
+    </script>
+</body>
+
+</html>
