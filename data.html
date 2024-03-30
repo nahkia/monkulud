@@ -50,12 +50,13 @@
                         <tr>
                             <th>Date</th>
                             <th>Time</th>
-                            <th>Dust density</th>
+                            <th>PM10</th>
                             <th>Humidity</th>
                             <th>Temperature</th>
                             <th>CO</th>
                             <th>Latitude</th>
                             <th>Longitude</th>
+                            <th>CO2</th>
                         </tr>
                     </thead>
                     <tbody id="dataTableBody">
@@ -99,6 +100,7 @@
                     "<td>" + location.field4 + "</td>" +
                     "<td>" + location.field5 + "</td>" +
                     "<td>" + location.field6 + "</td>" +
+                    "<td>" + location.field7 + "</td>" +
                     "</tr>";
                 tableBody.innerHTML += newRow;
             });
