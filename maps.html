@@ -8,54 +8,82 @@
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
-    <style>
-        .container-fluid {
-            margin-top: 20px;
-        }
-    </style>
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: Arial, sans-serif;
+        }
+
         #map {
             height: 880px;
         }
+
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .nav-link {
+            color: #fff !important;
+            font-size: 1.2rem;
+        }
+
+        .nav-link:hover {
+            color: #ffc107 !important;
+        }
+
+        #loading {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #343a40;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 1.5rem;
+        }
     </style>
 </head>
+
 
 <body>
     <!-- Navigation Bar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
-            <a class="navbar-brand" href="home.html">GPS Tracking</a>
+            <a class="navbar-brand" href="index.html">MonKulUd</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
                 aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ml-auto">
+                <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="home.html">Home</a>
+                        <a class="nav-link" href="home.html">Peneliti</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="maps.html">Maps</a>
+                        <a class="nav-link" href="maps.html">Peta</a>
                     </li>
-                    <li>
-                        <a class="nav-link" href="data.html">Data</a>
-                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="data.html">Data</a></li>
                 </ul>
             </div>
         </div>
     </nav>
 
     <!-- Main Content -->
+    <div id="loading">Loading Map...</div>
     <div id="map"></div>
 
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script>
-        // Paste your map script here
+        // Initialize map
         var map = L.map('map').setView([0, 0], 15);
-        var userAction = false; // Flag to check if user has manually moved the map
+        var userAction = false;
 
         map.on('move', function () {
             userAction = true;
@@ -65,16 +93,12 @@
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
 
-        // Function to fetch data from the API
         function fetchData() {
-            // Replace 'YOUR_API_ENDPOINT' with the actual API endpoint
             var apiUrl = 'https://api.thingspeak.com/channels/2453621/feeds.json?timezone=Asia%2FJakarta&api_key=QTZEWSPVLEUIPXWJ';
 
-            // Fetch data from the API
             fetch(apiUrl)
                 .then(response => response.json())
                 .then(data => {
-                    // Update the map and table with the new data
                     console.log('Response JSON:', data);
                     updateMarkers(data.feeds);
                     updateTable(data.feeds);
@@ -82,37 +106,54 @@
                 .catch(error => console.error('Error fetching data:', error));
         }
 
-        // Function to update markers on the map
         function updateMarkers(locations) {
-            // Remove existing markers
             map.eachLayer(function (layer) {
                 if (layer instanceof L.Marker) {
                     map.removeLayer(layer);
                 }
             });
 
-            // Add new markers based on the API response
             locations.forEach(location => {
                 var lat = parseFloat(location.field5);
                 var lng = parseFloat(location.field6);
 
-                // Check if lat and lng are not empty
                 if (!isNaN(lat) && !isNaN(lng)) {
                     var latLng = [lat, lng];
 
+                    var pm10 = parseFloat(location.field1);
+                    var co_ppm = parseFloat(location.field4);
+                    var co2 = parseFloat(location.field7);
+                    var temp = parseFloat(location.field3);
+                    var humidity = parseFloat(location.field2);
+
+                    // Convert CO from PPM to µg/m³
+                    var co_ug_m3 = convertCOtoUGM3(co_ppm);
+
+                    var ispuPM10 = calculateISPU(pm10, 'pm10');
+                    var ispuCO = calculateISPU(co_ug_m3, 'co');
+                    var ispuCategory = classifyISPU(co_ug_m3, pm10); // Update to use new classify function
+                    var co2Category = classifyCO2(co2);
+                    var heatIndex = calculateHeatIndex(temp, humidity);
+                    var heatIndexCategory = classifyHeatIndex(heatIndex);
+
+                    var dateObj = new Date(location.created_at);
+                    var options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                    var formattedDate = dateObj.toLocaleDateString('id', options);
                     var marker = L.marker(latLng)
                         .addTo(map)
                         .bindPopup(
-                            'Date: ' + location.created_at.slice(0, 10) + '<br>' +
-                            'Time: ' + location.created_at.slice(11, 19) + '<br>' +
-                            'Dust density (ug/m^3): ' + location.field1 + '<br>' +
-                            'Humidity (%): ' + location.field2 + '<br>' +
-                            'Temperature (C): ' + location.field3 + '<br>' +
-                            'CO (PPM): ' + location.field4 + '<br>' +
-                            'CO2 (PPM): ' + location.field7 + '<br>'
+                            'Hari/Tanggal: ' + formattedDate + '<br>' +
+                            'Jam: ' + location.created_at.slice(11, 19) + '<br>' +
+                            'CO: ' + co_ppm + ' ppm <br>' +
+                            'CO2: ' + co2 + ' ppm <br>' +
+                            'PM10: ' + pm10 + ' ug/m^3 <br>' +
+                            'Suhu: ' + temp + ' C <br>' +
+                            'Kelembapan: ' + humidity + ' % <br>' +
+                            'Kategori ISPU: ' + ispuCategory + '<br>' +
+                            'Kategori CO2: ' + co2Category + '<br>' +
+                            'Kategori Heat Index: ' + heatIndexCategory
                         );
 
-                    // Set view only if the map hasn't been manually moved by the user
                     if (!userAction) {
                         map.setView(latLng, map.getZoom());
                     }
@@ -120,30 +161,116 @@
             });
         }
 
-        // Function to update table with new data
         function updateTable(locations) {
-            // Clear existing table data
             document.getElementById("dataTableBody").innerHTML = "";
 
-            // Populate table with new data
             locations.forEach(location => {
+                var pm10 = parseFloat(location.field1);
+                var co_ppm = parseFloat(location.field4);
+                var co2 = parseFloat(location.field7);
+                var temp = parseFloat(location.field3);
+                var humidity = parseFloat(location.field2);
+
+                // Convert CO from PPM to µg/m³
+                var co_ug_m3 = convertCOtoUGM3(co_ppm);
+
+                var ispuPM10 = calculateISPU(pm10, 'pm10');
+                var ispuCO = calculateISPU(co_ug_m3, 'co');
+                var ispuCategory = classifyISPU(co_ug_m3, pm10);
+                var co2Category = classifyCO2(co2);
+                var heatIndex = calculateHeatIndex(temp, humidity);
+                var heatIndexCategory = classifyHeatIndex(heatIndex);
+
                 var newRow = "<tr>" +
                     "<td>" + location.created_at.slice(0, 10) + "</td>" +
                     "<td>" + location.created_at.slice(11, 19) + "</td>" +
-                    "<td>" + location.field1 + "</td>" +
-                    "<td>" + location.field2 + "</td>" +
-                    "<td>" + location.field3 + "</td>" +
-                    "<td>" + location.field4 + "</td>" +
-                    "<td>" + location.field7 + "</td>" +
+                    "<td>" + pm10 + "</td>" +
+                    "<td>" + humidity + "</td>" +
+                    "<td>" + temp + "</td>" +
+                    "<td>" + co_ppm + "</td>" +
+                    "<td>" + co_ug_m3 + "</td>" +
+                    "<td>" + co2 + "</td>" +
+                    "<td>" + ispuCategory + "</td>" +
+                    "<td>" + co2Category + "</td>" +
+                    "<td>" + heatIndexCategory + "</td>" +
                     "</tr>";
                 document.getElementById("dataTableBody").innerHTML += newRow;
             });
         }
 
-        // Initial fetch when the page loads
-        fetchData();
+        // Function to convert CO from PPM to µg/m³
+        function convertCOtoUGM3(co) {
+            return 0.0409 * co * 1000 * 28.01;
+        }
 
-        // Fetch data every 10 seconds (adjust the interval as needed)
+        // Function to calculate ISPU
+        function calculateISPU(value, type) {
+            var xb, xa, ib, ia;
+
+            if (type === 'pm10') {
+                if (value <= 50) { xb = 0; xa = 50; ib = 0; ia = 50; }
+                else if (50 < value <= 150) { xb = 50; xa = 150; ib = 50; ia = 100; }
+                else if (150 < value <= 350) { xb = 150; xa = 350; ib = 100; ia = 200; }
+                else if (350 < value <= 420) { xb = 350; xa = 420; ib = 200; ia = 300; }
+                else { xb = 420; xa = 500; ib = 300; ia = 400; }
+            } else if (type === 'co') {
+                if (value <= 4000) { xb = 0; xa = 4000; ib = 0; ia = 50; }
+                else if (4000 < value <= 8000) { xb = 4000; xa = 8000; ib = 50; ia = 100; }
+                else if (8000 < value <= 15000) { xb = 8000; xa = 15000; ib = 100; ia = 200; }
+                else if (15000 < value <= 20000) { xb = 15000; xa = 20000; ib = 200; ia = 300; }
+                else { xb = 20000; xa = 30000; ib = 300; ia = 400; }
+            }
+
+            return ((ia - ib) / (xa - xb)) * (value - xb) + ib;
+        }
+
+        // Function to classify ISPU based on the highest ISPU value
+        function classifyISPU(coValue, pm10Value) {
+            // Calculate ISPU for CO and PM10
+            var ispuCO = calculateISPU(coValue, 'co');
+            var ispuPM10 = calculateISPU(pm10Value, 'pm10');
+
+            // Determine the highest ISPU
+            var highestISPU = Math.max(ispuCO, ispuPM10);
+
+            // Classify based on the highest ISPU
+            if (highestISPU <= 50) return "Baik";
+            else if (highestISPU <= 100) return "Sedang";
+            else if (highestISPU <= 200) return "Tidak Sehat";
+            else if (highestISPU <= 300) return "Sangat Tidak Sehat";
+            else if (highestISPU > 300) return "Berbahaya";
+            else return "Error";
+        }
+
+        // Function to classify CO2 levels
+        function classifyCO2(co2) {
+            if (co2 <= 400) return "Normal";
+            else if (co2 <= 1000) return "Baik";
+            else if (co2 <= 2000) return "Buruk";
+            else if (co2 <= 5000) return "Berbahaya";
+            else if (co2 > 5000) return "Sangat Berbahaya";
+            else return "Error";
+        }
+
+        // Function to calculate heat index
+        function calculateHeatIndex(temp, humidity) {
+            return -8.78469475556 + 1.61139411 * temp + 2.33854883889 * humidity +
+                -0.14611605 * temp * humidity + -0.012308094 * temp * temp +
+                -0.0164248277778 * humidity * humidity + 0.002211732 * temp * temp * humidity +
+                0.00072546 * temp * humidity * humidity + -0.000003582 * temp * temp * humidity * humidity;
+        }
+
+        // Function to classify heat index
+        function classifyHeatIndex(heatIndex) {
+            if (heatIndex <= 32) return "Nyaman";
+            else if (heatIndex <= 39) return "Mulai Tidak Nyaman";
+            else if (heatIndex < 51) return "Tidak Nyamman";
+            else if (heatIndex >= 51) return "Sangat Tidak Nyaman";
+            else return "Error";
+        }
+
+        // Fetch data every 10 seconds
+        fetchData();
         setInterval(fetchData, 10000);
     </script>
 </body>

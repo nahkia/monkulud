@@ -9,8 +9,46 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
     <style>
-        .container-fluid {
-            margin-top: 20px;
+        body {
+            background-color: #f8f9fa;
+            font-family: Arial, sans-serif;
+        }
+
+        .table-responsive {
+            margin-top: 50px;
+        }
+
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .nav-link {
+            color: #fff !important;
+            font-size: 1.2rem;
+        }
+
+        .nav-link:hover {
+            color: #ffc107 !important;
+        }
+
+        .card {
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+            margin-top: 30px;
+        }
+
+        .card-header {
+            background-color: #343a40;
+            color: #fff;
+            font-size: 1.25rem;
+        }
+
+        .card-body {
+            padding: 20px;
+            font-size: 1rem;
+            color: #343a40;
         }
     </style>
 </head>
@@ -19,22 +57,20 @@
     <!-- Navigation Bar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
-            <a class="navbar-brand" href="home.html">GPS Tracking</a>
+            <a class="navbar-brand" href="index.html">MonKulUd</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
                 aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ml-auto">
+                <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="home.html">Home</a>
+                        <a class="nav-link" href="home.html">Peneliti</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="maps.html">Maps</a>
-                    </li>
-                    <li>
-                        <a class="nav-link" href="data.html">Data</a>
-                    </li>
+                        <a class="nav-link" href="maps.html">Peta</a></li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="data.html">Data</a></li>
                 </ul>
             </div>
         </div>
@@ -44,17 +80,18 @@
     <div class="container-fluid">
         <div class="row justify-content-center">
             <div class="col-lg-8">
-                <h3>ThingSpeak Data</h3>
+                <h3>Data Tersimpan</h3>
                 <table class="table">
                     <thead>
                         <tr>
-                            <th>Date</th>
-                            <th>Time</th>
-                            <th>PM10 (ug/m^3)</th>
-                            <th>Humidity (%)</th>
-                            <th>Temperature (C)</th>
+                            <th>Hari/Tanggal</th>
+                            <th>Jam</th>
                             <th>CO (PPM)</th>
                             <th>CO2 (PPM)</th>
+                            <th>PM10 (ug/m^3)</th>
+                            <th>Suhu (C)</th>
+                            <th>Kelembapan (%)</th>
+
                         </tr>
                     </thead>
                     <tbody id="dataTableBody">
@@ -88,15 +125,15 @@
             locations.forEach(location => {
                 var dateObj = new Date(location.created_at);
                 var options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-                var formattedDate = dateObj.toLocaleDateString('en-US', options);
+                var formattedDate = dateObj.toLocaleDateString('id', options);
                 var newRow = "<tr>" +
                     "<td>" + formattedDate + "</td>" +
                     "<td>" + location.created_at.slice(11, 19) + "</td>" +
-                    "<td>" + location.field1 + "</td>" +
-                    "<td>" + location.field2 + "</td>" +
-                    "<td>" + location.field3 + "</td>" +
                     "<td>" + location.field4 + "</td>" +
                     "<td>" + location.field7 + "</td>" +
+                    "<td>" + location.field1 + "</td>" +
+                    "<td>" + location.field3 + "</td>" +
+                    "<td>" + location.field2 + "</td>" +
                     "</tr>";
                 tableBody.innerHTML += newRow;
             });
